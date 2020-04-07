@@ -21,6 +21,8 @@ namespace OCRAPI
         public int ValueOrientation { get; set; } = -1;
         public int ValueLimitSizeFile { get; } = 1;
 
+        private string _idSession = Guid.NewGuid().ToString("N");
+
         private string PathDirectoryOutput { get; set; } =
             Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()?.Location);
 
@@ -230,11 +232,19 @@ namespace OCRAPI
 
             try
             {
+                var pathDirectoryOutput = PathDirectoryOutput + "\\" + NameDirectoryOutput;
                 // создаем директорию для сохранения полученного изображения
-                Directory.CreateDirectory(PathDirectoryOutput + "\\" + NameDirectoryOutput);
+                Directory.CreateDirectory(pathDirectoryOutput);
+                pathDirectoryOutput = pathDirectoryOutput + "\\" + _idSession;
+                Directory.CreateDirectory(pathDirectoryOutput);
 
-                _pathFileOutput = PathDirectoryOutput + "\\" + NameDirectoryOutput + "\\" + Path.GetFileName(_pathFileInput);
+                _pathFileOutput = pathDirectoryOutput + "\\" + Path.GetFileName(_pathFileInput);
                 File.WriteAllBytes(_pathFileOutput, pImageInput);
+
+                // если это PDF, удаляем временный jpeg
+                if (string.IsNullOrEmpty(PdfPath)) return;
+                //File.Delete(_pathFileInput ?? throw new InvalidOperationException());
+                _pathFileInput = PdfPath;
             }
             catch (Exception e)
             {
@@ -249,7 +259,14 @@ namespace OCRAPI
             doc.LoadFromFile(pathFilePdf);
             
             Image bmp = doc.SaveAsImage(0);
-            var pathDirectoryImage = Path.GetDirectoryName(pathFilePdf);
+
+            // создаем директорию для конвертированных PDF
+
+            var pathDirectoryImage = PathDirectoryOutput + "\\pdfexport";
+            Directory.CreateDirectory(pathDirectoryImage);
+            pathDirectoryImage += "\\" + _idSession;
+            Directory.CreateDirectory(pathDirectoryImage);
+
             var nameFileImage = Path.GetFileNameWithoutExtension(pathFilePdf) + ".jpeg";
             bmp.Save(pathDirectoryImage + "\\" + nameFileImage, ImageFormat.Jpeg);
             return pathDirectoryImage + "\\" + nameFileImage;
@@ -309,7 +326,7 @@ namespace OCRAPI
                 };
 
 
-                byte[] imageData = null;
+                byte[] imageData;
                 if (string.IsNullOrEmpty(_pathFileInput) == false)
                 {
                     imageData = File.ReadAllBytes(_pathFileInput);
