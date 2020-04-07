@@ -21,6 +21,9 @@ namespace OCRAPI
         public int ValueOrientation { get; set; } = -1;
         public int ValueLimitSizeFile { get; } = 1;
 
+        private string PathDirectoryOutput { get; set; } =
+            Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly()?.Location);
+
         private string _pathFileInput;
         private string _pathFileOutput;
         public string NameDirectoryOutput { get; } = "Output";
@@ -222,14 +225,15 @@ namespace OCRAPI
 
         private void SaveImageOnDisk(byte[] pImageInput)
         {
-            var pathDirectory = Path.GetDirectoryName(_pathFileInput);
+            // проверка, что изображение существует
+            if (!File.Exists(_pathFileInput)) throw new Exception("Файл не найден: " + _pathFileInput);
 
             try
             {
-                if (!Directory.Exists(pathDirectory)) throw new Exception("Директория не найдена: " + pathDirectory);
-                Directory.CreateDirectory(pathDirectory + "\\" + NameDirectoryOutput);
+                // создаем директорию для сохранения полученного изображения
+                Directory.CreateDirectory(PathDirectoryOutput + "\\" + NameDirectoryOutput);
 
-                _pathFileOutput = pathDirectory + "\\" + NameDirectoryOutput + "\\" + Path.GetFileName(_pathFileInput);
+                _pathFileOutput = PathDirectoryOutput + "\\" + NameDirectoryOutput + "\\" + Path.GetFileName(_pathFileInput);
                 File.WriteAllBytes(_pathFileOutput, pImageInput);
             }
             catch (Exception e)
